@@ -1,0 +1,52 @@
+let events = [];
+async function loadEvents() {
+  const res = await fetch("./event.json");
+  const events = await res.json();
+
+  showEvents(events);
+}
+// ทำการไป  fetch มาจาก mock data ครับ
+loadEvents();
+// ทำการเรียก ที่  fetch มา
+function formatLocal(isoString) {
+  return new Date(isoString).toLocaleString("th-TH", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+// แปลงเหมือน int 504 เพราะเราจะใช้  format local ไม่  hardcode 
+
+function showEvents(events) {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  const now = new Date();
+
+  events.forEach(ev => {
+    const eventTime = new Date(ev.time);
+
+    let status = now >= eventTime ? "ถึงเวลาแล้ว!" : "ยังไม่ถึงเวลา";
+
+    const p = document.createElement("p");
+    p.textContent = `${ev.title} — ${status} — (${formatLocal(ev.time)})`;
+
+    list.appendChild(p);
+  });
+}
+//  เป็นการเช็คว่า เวลาตอนนี้เลย mock data ที่เอาไปเทียบหรึยัง 
+
+//
+//
+//
+//[
+  {
+    "title": "กินข้าวเย็น",
+    "time": "2025-12-01T12:00:00Z"
+  },
+  {
+    "title": "ออกกำลังกาย",
+    "time": "2025-11-27T14:10:00Z"
+  }
+]
+// 
+// ก็คือถ้าเวลา เลย จากเงื่อนไข ใดเงื่อนไข หนึ้่ง เช่น ถ้า datetime  เลย  "title": "กินข้าวเย็น" ไป มันก็จะเปลี่ยนเป็น "ถึงเวลาแล้ว"
