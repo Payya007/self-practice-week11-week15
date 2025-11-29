@@ -1,0 +1,189 @@
+
+import {
+  loadQuotes,
+  deleteQuote,
+  addQuote,
+  editQuote,
+} from "./quoteManagement.js"
+
+// รอ DOM โหลดเสร็จก่อน ถึงเริ่มทำงานได้
+document.addEventListener("DOMContentLoaded", async () => {
+   // โหลด quotes จาก backend
+  const quotes = await loadQuotes()
+  console.log(quotes)
+  const quoteListEle = document.getElementById("quoteList")
+  
+  quotes.forEach((quote) => {
+    const quoteCardEle = newQuoteCard(quote)
+    quoteListEle.appendChild(quoteCardEle)
+  })
+})
+
+// function สร้างแต่ละ quote-card จาก data ที่ได้
+function newQuoteCard(quote) {
+  // <div class="quote-card" data-id="1">
+
+  const divEle = document.createElement("div")
+  divEle.className = "quote-card"
+  divEle.dataset.id = quote.id
+
+  // <p>No one is perfect</p>
+  const pQuote = document.createElement("p")
+  pQuote.textContent = quote.content
+  divEle.appendChild(pQuote)
+
+  //<p class="author">someone</p>
+  const pAuthor = document.createElement("p")
+  pAuthor.className = "author"
+  pAuthor.textContent = quote.author
+  divEle.appendChild(pAuthor)
+
+  //<div class="actions">
+  const divActionsEle = document.createElement("div")
+  divActionsEle.className = "actions"
+  //ปุ่ม Edit
+  //  <button class="edit" data-id="1">Edit</button>
+  const editButtonEle = document.createElement("button")
+  editButtonEle.className = "edit"
+  editButtonEle.dataset.id = quote.id
+  editButtonEle.textContent = "Edit"
+  divActionsEle.appendChild(editButtonEle)
+  editButtonEle.addEventListener("click", handleEdit)
+      //ปุ่ม Delete เป็นก่ารสร้างปุ่มหน้า ui
+  // <button class="delete" data-id="1">delete</button>
+  const deleteButtonEle = document.createElement("button")
+  deleteButtonEle.className = "delete"
+  deleteButtonEle.dataset.id = quote.id
+  deleteButtonEle.textContent = "Delete"
+  divActionsEle.appendChild(deleteButtonEle)
+  deleteButtonEle.addEventListener("click", handleDelete)
+
+  divEle.appendChild(divActionsEle)
+  return divEle //
+}
+function handleEdit(e) {
+  const editId = e.target.dataset.id 
+  // ดึง id ของ quote ที่กดปุ่ม Edit
+  // เช่นปุ่มมี data-id="5"  editId = "5"
+
+  const editQuoteDivEle = document.querySelector(`div[data-id="${editId}"]`)
+  // หา div การ์ดที่ตรงกับ id นั้น
+  // เช่น <div class="quote-card" data-id="5">...</div>
+
+  const formEle = document.getElementById("quoteForm")
+  // เข้าถึงฟอร์ม
+
+  formEle.quoteId.value = editId
+  // ซ่อน id ไว้ใน hidden input
+  // เพื่อเวลากด submit ระบบจะรู้ว่า "อันนี้เป็นการ EDIT ไม่ใช่ ADD ใหม่"
+
+  formEle.content.value = editQuoteDivEle.children[0].textContent
+  // เติมช่อง content ด้วยค่าที่อยู่ในการ์ด
+
+  formEle.author.value = editQuoteDivEle.children[1].textContent
+  // เติมช่อง author ให้เหมือนเดิม
+}
+
+// ฟังก์ชันสำหรับ "ลบ" ข้อมูล (ต้องเป็น async เพราะมีการรอผลจาก Server)
+async function handleDelete(e) {
+  // e = event object 
+  
+  // 1. ดึง ID ของ Quote 
+  const removeId = e.target.dataset.id
+
+  // 2. แสดง Popup ถามยืนยันความแน่ใจ
+  const ans = confirm(`Do you want to delete quote: ${removeId} `)
+
+  // ถ้าผู้ใช้กด OK (ans เป็น true)
+  if (ans) {
+    try {
+      // 3. ส่งคำสั่งลบ await คือรอคำตอบด้วยนะ ไม่ไป ทำกอันต่อไปเลย คือรอก่อน
+      const deletedId = await deleteQuote(removeId)
+
+      // 4.ลบโดยการ เรียก dom เป็นกล่อง  หา Element กล่องข้อความ ที่มี data-id อันเดียวกัน
+      const removeQuoteDivEle = document.querySelector(
+        `div[data-id="${deletedId}"]`
+      )
+
+      // 5. หา Element
+      const quoteListEle = document.querySelector("#quoteList")
+      console.log(quoteListEle)
+
+      // 6. ลบกล่องข้อความนั้นออกจากรายการหน้าเว็บ
+      quoteListEle.removeChild(removeQuoteDivEle)
+
+    } catch (e) {
+      // ถ้ามี Error ให้แจ้งเตือน
+      alert(`App: ${e.message}`)
+    }
+  }      
+}
+
+
+const formEle = document.getElementById("quoteForm")
+formEle.addEventListener("submit", handleAddEdit)
+
+// ฟังก์ชัน เพิ่ม หรือ แก้ไข ข้อมูล
+async function handleAddEdit(event) {
+  // 1. ป้องกันไม่ให้หน้าเว็บ Refresh เองตามปกติของฟอร์ม
+  event.preventDefault()
+
+  // 2. ดึงค่าจากในฟอร์มมาเก็บไว้ 
+  const quoteId = formEle.quoteId.value
+  const newContent = formEle.content.value
+  const newAuthor = formEle.author.value
+
+  // 3. เช็คว่าเป็นการ แก้ไข หรือ เพิ่ม
+  if (quoteId) {
+    
+    try {
+      // ส่งข้อมูลไปอัปเดตที่ ใน function ที่เราเขียน แต่ถ้าเป็นปกติก็ backend
+      const updateQuote = await editQuote({
+        id: quoteId,
+        content: newContent,
+        author: newAuthor,
+      })
+
+      // อัปเดตข้อมูล ui หน้าเว็ป
+      const updateQuoteDivEle = document.querySelector(
+        `div[data-id="${updateQuote.id}"]`
+      )
+      // เปลี่ยนข้อความใน html ให้เป็นค่าใหม่ 
+      updateQuoteDivEle.children[0].textContent = updateQuote.content
+      updateQuoteDivEle.children[1].textContent = updateQuote.author
+
+    } catch (e) {
+      console.log(`App [Edit]: ${e.message}`)
+    }
+  } else {
+    // ถ้าไม่มี quoteid
+    try {
+      // 1. ส่งข้อมูลใหม่ไปบันทึกที่ Backend
+      const newQuote = await addQuote({
+        content: newContent,
+        author: newAuthor,
+      }) 
+      
+      // 2. สร้างการ์ด HTML ใบใหม่ขึ้นมา (เรียกฟังก์ชัน newQuoteCard ที่เตรียมไว้)
+      const newQuoteDivEle = newQuoteCard(newQuote)
+      
+      // 3. เอาการ์ดใบใหม่ไปต่อท้ายรายการในหน้าเว็บ
+      const quoteListEle = document.getElementById("quoteList")
+      quoteListEle.appendChild(newQuoteDivEle)
+
+    } catch (e) {
+      alert(`App [Add]: ${e.message}`)
+    }
+  }
+
+  // 4. ล้างค่าในฟอร์มให้ว่าง 
+  formEle.quoteId.value = ""
+  formEle.content.value = ""
+  formEle.author.value = ""
+}
+
+// <div class="quote-card" data-id="1">
+//    <p>No one is perfect</p>      <-- children[0] (เนื้อหา)
+//    <p class="author">someone</p> <-- children[1] (คนเขียน)
+//    <div class="actions"> ... </div>
+// </div>
