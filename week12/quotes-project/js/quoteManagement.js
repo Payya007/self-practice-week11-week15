@@ -15,13 +15,14 @@ async function loadQuotes() {
 async function deleteQuote(id) {
   try{
     const removeId = await deleteItem( quoteURL, id)
+    return removeId
   } catch (error){
     alert(`Quote : ${error}`)
   }
  }
 async function addQuote(item) {
   try{
-    await addItem(quoteURL,item)
+    return await addItem(quoteURL,item)
   }
   catch(error){
     alert(`Quote:${error}`)

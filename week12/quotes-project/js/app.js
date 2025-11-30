@@ -1,4 +1,4 @@
-import { loadQuotes, deleteQuote  , addQuote} from "./quoteManagement.js"
+import { loadQuotes, deleteQuote , addQuote} from "./quoteManagement.js"
 
 document.addEventListener("DOMContentLoaded", async () => {
   const quotes = await loadQuotes()
@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     quoteListEle.appendChild(quoteCardEle)
   })
 })
+
 function newQuoteCard(quote) {
   // <div class="quote-card" data-id="1">
   const divEle = document.createElement("div")
@@ -34,7 +35,7 @@ function newQuoteCard(quote) {
   editButtonEle.dataset.id = quote.id
   editButtonEle.textContent = "Edit"
   divActionsEle.appendChild(editButtonEle)
-  editButtonEle.addEventListener("")
+ 
   // <button class="delete" data-id="1">delete</button>
   const deleteButtonEle = document.createElement("button")
   deleteButtonEle.className = "delete"
@@ -44,60 +45,66 @@ function newQuoteCard(quote) {
   deleteButtonEle.addEventListener('click', handleDelete)
 
   divEle.appendChild(divActionsEle)
-  return divEle //
+  return divEle 
 }
 
-function handleDelete(e) {
-  console.log(e.target.dataset.id)
+async function handleDelete(e) {
+  //e=event object
+  // console.log(e.target.dataset.id)
   const removeId = e.target.dataset.id
-  const ans = confirm(`Do you want to delete quote: ${removeId}`)
- if (ans) {
+  const ans = confirm(`Do you want to delete quote: ${removeId} `)
+  if (ans) {
     try {
       //1. delete quote in the backend
-      const deletedId =  deleteQuote(removeId)
+      const deletedId = await deleteQuote(removeId) // ถ้า backend return id กลับมาเป็นตัวเลข
       // console.log(deletedId)
+      
       //2. find remove quote div element
+   
       const removeQuoteDivEle = document.querySelector(
-        `div[data-id="${deletedId}"]`
+        `div[data-id="${removeId}"]`
       )
       // console.log(removeQuoteDivEle)
       const quoteListEle = document.querySelector("#quoteList")
       console.log(quoteListEle)
+      
       //3. delete quote div element
-      quoteListEle.removeChild(removeQuoteDivEle)
+      // [FIX] เช็คก่อนว่าเจอ element ไหม ถึงค่อยลบ ไม่งั้น error
+      if (removeQuoteDivEle) {
+          quoteListEle.removeChild(removeQuoteDivEle)
+      }
     } catch (e) {
       alert(`App: ${e.message}`)
     }
-  }
-
+  }     
 }
-const fromEle =document.getElementById("quoteForm")
-fromEle.addEventListener("submit", handleAddEdit)
-function handleAddEdit(event){
+
+// 
+const formEle = document.getElementById("quoteForm")
+formEle.addEventListener("submit", handleAddEdit)
+
+// [FIX] ใส่ async เพราะต้องรอ addQuote
+async function handleAddEdit(event){
   event.preventDefault()
- const quoteId = formEle.quoteId.value
+  
+  // const quoteId = formEle.quoteId.value
   const newContent = formEle.content.value
   const newAuthor = formEle.author.value
   
 
-  
-   const newQuote = addQuote({content: newContent, author: newAuthor })
-  const newQuoteCard = newQuoteCard(newQuote)
+   const newQuote = await addQuote({content: newContent, author: newAuthor })
+  console.log("newQuote:", newQuote)
+
+  const newCard = newQuoteCard(newQuote)
+ 
   const quoteListEle = document.getElementById("quoteList")
-  quoteListEle.appendChild(newQuoteCard)
+  quoteListEle.appendChild(newCard)
 
-  console.log(fromEle.quoteId.value)
-  console.log(fromEle.content.value)
-  console.log(fromEle.author.value)
+  // console.log(formEle.quoteId.value)
+  console.log(formEle.content.value)
+  console.log(formEle.author.value)
+   
+  formEle.reset() 
+  return newQuote
 }  
-console.log(fromEle)
-
-//create html quote cards
-//   <div class="quote-card" data-id="1">
-//    <p>No one is perfect</p>
-//    <p class="author">someone</p>
-//    <div class="actions">
-//         <button class="edit" data-id="1">Edit</button>
-//         <button class="delete" data-id="1">delete</button>
-//    </div>
-// </div>
+console.log(formEle)
